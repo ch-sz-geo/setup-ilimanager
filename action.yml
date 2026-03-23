@@ -56,6 +56,8 @@ runs:
         mkdir -p "$INSTALL_DIR"
         unzip -q "$ZIP_NAME" -d "$INSTALL_DIR"
 
+        rm "$ZIP_NAME"
+
         JAR_PATH=$(find "$INSTALL_DIR" -name "ilimanager*.jar" | head -1)
 
         echo "install-path=$INSTALL_DIR" >> "$GITHUB_OUTPUT"
@@ -63,8 +65,6 @@ runs:
 
         echo "ilimanager installed to: $INSTALL_DIR"
         echo "jar path: $JAR_PATH"
-
-        rm "$ZIP_NAME"
 
     - name: Verify installation
       shell: bash
