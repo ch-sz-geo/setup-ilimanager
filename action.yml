@@ -1,0 +1,70 @@
+name: 'Setup ilimanager'
+description: 'Downloads and installs ilimanager (INTERLIS repository index tool)'
+
+inputs:
+  version:
+    description: 'ilimanager version to install (e.g. 1.0.0). Defaults to latest.'
+    required: false
+    default: 'latest'
+  install-dir:
+    description: 'Directory to install ilimanager into'
+    required: false
+    default: 'ilimanager'
+
+outputs:
+  install-path:
+    description: 'Path where ilimanager was installed'
+    value: ${{ steps.install.outputs.install-path }}
+  jar-path:
+    description: 'Full path to the ilimanager jar file'
+    value: ${{ steps.install.outputs.jar-path }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '21'
+
+    - name: Resolve version
+      id: resolve-version
+      shell: bash
+      run: |
+        if [ "${{ inputs.version }}" = "latest" ]; then
+          VERSION=$(curl -s https://downloads.interlis.ch/ilimanager/ilimanager-release.json \
+            | grep -o '"version":"[^"]*"' | head -1 | cut -d'"' -f4)
+        else
+          VERSION="${{ inputs.version }}"
+        fi
+        echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+        echo "Resolved ilimanager version: $VERSION"
+
+    - name: Download and install ilimanager
+      id: install
+      shell: bash
+      run: |
+        VERSION="${{ steps.resolve-version.outputs.version }}"
+        INSTALL_DIR="${{ inputs.install-dir }}"
+        ZIP_NAME="ilimanager-$VERSION-bindist.zip"
+        DOWNLOAD_URL="https://downloads.interlis.ch/ilimanager/$ZIP_NAME"
+
+        echo "Downloading $DOWNLOAD_URL ..."
+        curl -fsSL "$DOWNLOAD_URL" -o "$ZIP_NAME"
+
+        mkdir -p "$INSTALL_DIR"
+        unzip -q "$ZIP_NAME" -d "$INSTALL_DIR"
+
+        JAR_PATH=$(find "$INSTALL_DIR" -name "ilimanager*.jar" | head -1)
+
+        echo "install-path=$INSTALL_DIR" >> "$GITHUB_OUTPUT"
+        echo "jar-path=$JAR_PATH" >> "$GITHUB_OUTPUT"
+
+        echo "ilimanager installed to: $INSTALL_DIR"
+        echo "jar path: $JAR_PATH"
+
+    - name: Verify installation
+      shell: bash
+      run: |
+        java -jar "${{ steps.install.outputs.jar-path }}" --help || true
