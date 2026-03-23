@@ -1,0 +1,72 @@
+name: 'Setup iliCompiler'
+description: 'Downloads and installs ili2c'
+
+inputs:
+  version:
+    description: 'iliCompiler version to install (e.g. 1.0.0). Defaults to latest.'
+    required: false
+    default: 'latest'
+  path:
+    description: 'Directory to install compiler into'
+    required: false
+    default: 'ili2c'
+
+outputs:
+  install-path:
+    description: 'Path where ili2c was installed'
+    value: ${{ steps.install.outputs.install-path }}
+  jar-path:
+    description: 'Full path to the ili2c jar file'
+    value: ${{ steps.install.outputs.jar-path }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '11'
+
+    - name: Resolve version
+      id: resolve-version
+      shell: bash
+      run: |
+        if [ "${{ inputs.version }}" = "latest" ]; then
+          VERSION=$(curl -s https://downloads.interlis.ch/ili2c/ili2c-release.json \
+            | grep -o '"version":"[^"]*"' | head -1 | cut -d'"' -f4)
+        else
+          VERSION="${{ inputs.version }}"
+        fi
+        echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+        echo "Resolved ili2c version: $VERSION"
+
+    - name: Download and install compiler
+      id: install
+      shell: bash
+      run: |
+        VERSION="${{ steps.resolve-version.outputs.version }}"
+        INSTALL_DIR="${{ inputs.path }}"
+        ZIP_NAME="ili2c-$VERSION.zip"
+        DOWNLOAD_URL="https://downloads.interlis.ch/ili2c/$ZIP_NAME"
+
+        echo "Downloading $DOWNLOAD_URL ..."
+        curl -fsSL "$DOWNLOAD_URL" -o "$ZIP_NAME"
+
+        mkdir -p "$INSTALL_DIR"
+        unzip -q "$ZIP_NAME" -d "$INSTALL_DIR"
+
+        rm "$ZIP_NAME"
+
+        JAR_PATH=$(find "$INSTALL_DIR" -name "ili2c*.jar" | head -1)
+
+        echo "install-path=$INSTALL_DIR" >> "$GITHUB_OUTPUT"
+        echo "jar-path=$JAR_PATH" >> "$GITHUB_OUTPUT"
+
+        echo "ili2c installed to: $INSTALL_DIR"
+        echo "jar path: $JAR_PATH"
+
+    - name: Verify installation
+      shell: bash
+      run: |
+        java -jar "${{ steps.install.outputs.jar-path }}" --help || true
