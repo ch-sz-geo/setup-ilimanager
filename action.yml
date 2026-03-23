@@ -64,6 +64,8 @@ runs:
         echo "ilimanager installed to: $INSTALL_DIR"
         echo "jar path: $JAR_PATH"
 
+        rm "$ZIP_NAME"
+
     - name: Verify installation
       shell: bash
       run: |
