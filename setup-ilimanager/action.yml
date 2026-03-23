@@ -6,7 +6,7 @@ inputs:
     description: 'ilimanager version to install (e.g. 1.0.0). Defaults to latest.'
     required: false
     default: 'latest'
-  install-dir:
+  path:
     description: 'Directory to install ilimanager into'
     required: false
     default: 'ilimanager'
@@ -46,7 +46,7 @@ runs:
       shell: bash
       run: |
         VERSION="${{ steps.resolve-version.outputs.version }}"
-        INSTALL_DIR="${{ inputs.install-dir }}"
+        INSTALL_DIR="${{ inputs.path }}"
         ZIP_NAME="ilimanager-$VERSION.zip"
         DOWNLOAD_URL="https://downloads.interlis.ch/ilimanager/$ZIP_NAME"
 
